@@ -42,3 +42,103 @@
 (str/upper-case "ß")
 
 (gen/sample gen/string-ascii)
+
+;; Numbers
+;;; Integers
+(gen/sample gen/nat)
+(gen/sample gen/small-integer 100)
+(gen/sample gen/large-integer 100)
+(gen/sample (gen/large-integer* {:min 10 :max 10000}) 100)
+
+(gen/sample (gen/choose 0 10000))
+
+
+;;; Ratios
+(gen/sample gen/ratio)
+(gen/sample gen/big-ratio)
+
+;;; Doubles
+(gen/sample gen/double)
+(gen/sample (gen/double* {:infinite? false :NaN? false}))
+
+;;; BigInts
+(gen/sample gen/size-bounded-bigint)
+
+;; Characters and strings
+
+;;; Characters
+(gen/sample gen/char)
+(gen/sample gen/char-ascii)
+(gen/sample gen/char-alphanumeric)
+(gen/sample gen/char-alpha)
+
+;;; Strings
+(gen/sample gen/string)
+(gen/sample gen/string-ascii)
+(gen/sample gen/string-alphanumeric)
+
+;;; keywords
+(gen/sample gen/keyword)
+(gen/sample gen/keyword-ns)
+
+;;; symbols
+(gen/sample gen/symbol)
+(gen/sample gen/symbol-ns)
+
+;;; uuid
+(gen/sample gen/uuid)
+
+;;; boolean
+(gen/sample gen/boolean)
+
+;; Collections
+
+;;; Vector
+(gen/sample (gen/vector gen/nat 2 4))
+(gen/sample (gen/vector-distinct gen/nat))
+
+;;; List
+(gen/sample (gen/list gen/boolean))
+(gen/sample (gen/list-distinct gen/small-integer))
+
+;;; Set
+(gen/sample (gen/set gen/nat))
+(gen/sample (gen/sorted-set gen/nat))
+
+;; Map
+(gen/sample (gen/map gen/keyword gen/string-ascii))
+
+;; Tuple
+(gen/sample (gen/tuple gen/nat gen/string-alphanumeric gen/boolean))
+
+;; Entity
+{:first-name "Eric"
+ :last-name "Normand"
+ :age 38}
+
+(gen/sample (gen/hash-map :first-name gen/string-alphanumeric
+                          :last-name gen/string-alphanumeric
+                          :age gen/nat))
+
+;; Not-empty
+(gen/sample (gen/vector gen/boolean))
+(gen/sample (gen/not-empty (gen/vector gen/boolean)))
+
+;; example nesting
+(gen/sample (gen/vector (gen/vector gen/boolean)))
+
+;; recursive
+(drop 90 (gen/sample (gen/recursive-gen gen/vector gen/boolean) 100))
+
+;; Random selection
+(gen/sample (gen/elements [:a :b :c :d :e]))
+(gen/sample (gen/return 1))
+(gen/sample (gen/shuffle [1 2 3 4 5 6 7]))
+(gen/sample (gen/one-of [gen/string-alphanumeric
+                         gen/nat
+                         (gen/return nil)
+                         (gen/vector gen/nat)]))
+(gen/sample (gen/frequency [[10 gen/nat]
+                            [1 (gen/return nil)]
+                            [2 gen/string-alphanumeric]]) 100)
+(gen/sample (gen/choose 0 100))
