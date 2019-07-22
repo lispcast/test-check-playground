@@ -142,3 +142,43 @@
                             [1 (gen/return nil)]
                             [2 gen/string-alphanumeric]]) 100)
 (gen/sample (gen/choose 0 100))
+
+;; Building simple generators
+
+;; such-that (like filter)
+
+(gen/sample (gen/such-that even? gen/nat))
+(gen/sample (gen/such-that odd? gen/nat))
+(gen/sample (gen/such-that neg? gen/small-integer))
+(gen/sample (gen/such-that #(zero? (mod % 100)) gen/nat))
+(gen/sample (gen/such-that #(re-matches #"[abcd]+" %) gen/string))
+
+;; fmap (like map)
+
+(gen/sample (gen/fmap #(* 2 %) gen/nat))
+(gen/sample (gen/fmap #(inc (* 2 %)) gen/nat))
+(gen/sample (->> gen/nat
+                 (gen/fmap inc)
+                 (gen/fmap -)))
+(gen/sample (gen/fmap #(* 100 %) gen/nat))
+(gen/sample (gen/fmap #(apply str %) (gen/not-empty (gen/vector (gen/elements [\a \b \c \d])))))
+
+;; bind
+
+(gen/sample (gen/bind gen/nat #(gen/vector gen/nat %)))
+(gen/sample (gen/bind (gen/tuple (gen/fmap inc gen/nat)
+                                 (gen/fmap inc gen/nat))
+                      (fn [[n m]]
+                        (gen/vector
+                         (gen/vector gen/small-integer m)
+                         n))))
+
+;; let
+
+(gen/sample (gen/let [len gen/nat]
+              (gen/vector gen/nat len)))
+(gen/sample (gen/let [[n m] (gen/tuple (gen/fmap inc gen/nat)
+                                       (gen/fmap inc gen/nat))]
+              (gen/vector
+               (gen/vector gen/small-integer m)
+               n)))
