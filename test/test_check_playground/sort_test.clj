@@ -36,10 +36,27 @@
     (let [s (s/mergesort numbers)]
       (apply <= s))))
 
+;; Invariants
+;; what doesn't change?
+
+(defspec sort-always-list 100
+  (prop/for-all [numbers (gen/vector gen/large-integer)]
+    (seq? (s/mergesort numbers))))
+
+(defspec sort-same-length 100
+  (prop/for-all [numbers (gen/vector gen/large-integer)]
+    (= (count (s/mergesort numbers))
+       (count numbers))))
+
+(defspec sort-same-elements 100
+  (prop/for-all [numbers (gen/vector gen/large-integer)]
+    (= (frequencies numbers)
+       (frequencies (s/mergesort numbers)))))
 
 (comment
   (sort [])
   (s/mergesort [])
   (gen/sample (gen/vector (gen/choose 0 4)))
+  (frequencies [:a :b :a :c :d :d :d])
   )
 
