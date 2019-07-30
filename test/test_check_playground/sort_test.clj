@@ -53,6 +53,31 @@
     (= (frequencies numbers)
        (frequencies (s/mergesort numbers)))))
 
+;; idempotence
+
+(defspec sort-idempotent 100
+  (prop/for-all [number (gen/vector gen/large-integer)]
+    (= (s/mergesort number)
+       (-> number
+           s/mergesort
+           s/mergesort))))
+
+;; commutativity of elements
+
+(defspec sort-commutative 100
+  (prop/for-all [n1 (gen/shuffle (range 100))
+                 n2 (gen/shuffle (range 100))]
+    (= (s/mergesort n1)
+       (s/mergesort n2))))
+
+(defspec sort-identity 100
+  (prop/for-all [n1 (gen/vector gen/large-integer)]
+    (= Long/MIN_VALUE
+       (-> n1
+           (conj Long/MIN_VALUE)
+           s/mergesort
+           first))))
+
 (comment
   (sort [])
   (s/mergesort [])
