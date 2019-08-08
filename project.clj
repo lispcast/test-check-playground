@@ -4,4 +4,6 @@
   :license {:name "CC0 1.0 Universal (CC0 1.0) Public Domain Dedication"
             :url "http://creativecommons.org/publicdomain/zero/1.0/"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/test.check "0.10.0-SNAPSHOT"]])
+                 [org.clojure/test.check "0.10.0-SNAPSHOT"]
+                 [cheshire "5.9.0"]
+                 [clj-http "3.10.0"]])
