@@ -7,6 +7,13 @@
 (def email-re
   #"(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()\[\]\.,;:\s@\"]+\.)+[^<>()\[\]\.,;:\s@\"]{2,})")
 
+(defn valid? [email]
+  (boolean (re-matches email-re email)))
+
+(defn save-email! [email]
+  {:pre [(valid? email)]}
+  true)
+
 ;; this won't work
 (gen/sample (gen/such-that #(re-matches email-re %) gen/string-ascii))
 
