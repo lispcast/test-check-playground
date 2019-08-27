@@ -31,5 +31,5 @@
   nil)
 
 (defn kv-clr [store]
-  (swap! store empty)
+  (reset! store {})
   nil)

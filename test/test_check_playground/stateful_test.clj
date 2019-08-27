@@ -22,11 +22,14 @@
 
 (def gen-add (gen/fmap #(vector :add %) gen/small-integer))
 (def gen-val (gen/return [:val]))
-(def gen-score-op (gen/one-of [gen-add
-                               gen-val]))
+(def gen-pause (gen/fmap #(vector :pause %) (gen/choose 0 10)))
+(def gen-score-op (gen/frequency [[1 gen-pause]
+                                  [1 gen-val]
+                                  [9 gen-add]]))
 
 (defn apply-score-op [counter [op arg]]
   (case op
+    :pause (Thread/sleep arg)
     :val (sut/counter-value counter)
     :add (sut/increment counter arg)))
 
@@ -46,6 +49,7 @@
 
 (defn apply-score-model-op [model [op arg]]
   (case op
+    :pause model
     :val model
     :add (if (neg? arg)
            model
@@ -155,5 +159,130 @@
 
   (gen/sample (gen-kv-op gen/string-ascii gen/string-ascii))
 
+
+  )
+
+;; Parallel
+
+;; Challenge: reliably induce failures due to race conditions
+
+;; Techniques:
+;;  1. Running threads
+;;  2. Relax comparisions--if our real system is equivalent to some possible ordering in our model
+
+(defn children [{:keys [sequence threads]}]
+  (for [[k [v & thread]] threads]
+    {:sequence (conj sequence v)
+     :threads (if (not (empty? thread))
+                (assoc threads k thread)
+                (dissoc threads k))}))
+
+(defn branch? [x]
+  (-> x :threads empty? not))
+
+(defn possible-interleavings [sequences]
+  (let [threads (into {} (map vector (range) (remove empty? sequences)))]
+    (->> (tree-seq branch? children {:sequence [] :threads threads})
+         (remove branch?)
+         (map :sequence)
+         distinct)))
+
+(comment
+
+  (children {:sequence [:beginning] :threads {0 [:a :b :c]}})
+
+  (possible-interleavings [[:a :b] [:x :y]])
+
+  (possible-interleavings [[] [] [] [] []])
+
+  (count (possible-interleavings [(range 10) (map #(+ 1000 %) (range 10))]))
+  
+  )
+
+(defn run-score-counter-threads [counter ops-sequences]
+  (let [latch (promise)
+        dones (doall (for [ops ops-sequences]
+                       (let [done (promise)]
+                         (.start
+                          (Thread. (fn []
+                                     @latch
+                                     (doseq [op ops]
+                                       (try
+                                         (apply-score-op counter op)
+                                         (catch Throwable t)))
+                                     (deliver done :done))))
+                         done)))]
+    (deliver latch :go!)
+    (run! deref dones)))
+
+(defspec score-model-parallel-test 100
+  (prop/for-all [ops-sequences (gen/vector (gen/vector gen-score-op 0 5) 2)]
+    (let [poss (possible-interleavings ops-sequences)
+          models (map #(reduce apply-score-model-op 0 %) poss)]
+      (every? identity
+              (for [_ (range 50)]
+                (let [counter (sut/new-counter)]
+                  (run-score-counter-threads counter ops-sequences)
+                  (let [counter-val (sut/counter-value counter)]
+                    (some #(= counter-val %) models))))))))
+
+(comment
+
+  (gen/sample (gen/vector (gen/vector gen-score-op 0 5) 2))
+
+  )
+
+(def gen-kv-op-collision (gen-kv-op (gen/frequency
+                                     [[10 (gen/elements ["a"
+                                                         "b"
+                                                         "c"
+                                                         "d"])]
+                                      [1 gen/string-ascii]])
+                                    gen/string-ascii))
+
+(defn run-kv-store-threads [store ops-sequences]
+  (let [latch (promise)
+        dones (doall (for [ops ops-sequences]
+                       (let [done (promise)]
+                         (.start
+                          (Thread. (fn []
+                                     @latch
+                                     (doseq [op ops]
+                                       (try
+                                         (apply-kv-op store op)
+                                         (catch Throwable t)))
+                                     (deliver done :done))))
+                         done)))]
+    (deliver latch :go!)
+    (run! deref dones)))
+
+(defn kv-store-model-equiv? [store model]
+  (and
+   (every? (fn [[k v]]
+             (= v (sut/kv-get store k)))
+           (:kv model))
+   (every? (fn [k]
+             (nil? (sut/kv-get store k)))
+           (:dels model))))
+
+(defspec kv-store-model-parallel 100
+  (prop/for-all [init-sequence (gen/vector gen-kv-op-collision)
+                 ops-sequences (gen/vector (gen/vector gen-kv-op-collision 0 7) 2)]
+    (let [poss (possible-interleavings ops-sequences)
+          poss (map #(concat init-sequence %) poss)
+          models (map #(reduce apply-kv-model-op {} %) poss)]
+      (every? identity
+              (for [_ (range 50)]
+                (let [store (sut/new-kv-store)]
+                  (doseq [op init-sequence]
+                    (try
+                      (apply-kv-op store op)
+                      (catch Throwable t)))
+                  (run-kv-store-threads store ops-sequences)
+                  (some #(kv-store-model-equiv? store %) models)))))))
+
+(comment
+
+  (gen/sample (gen/vector (gen/vector gen-kv-op-collision 0 5) 2))
 
   )
