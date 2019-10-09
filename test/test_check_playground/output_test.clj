@@ -32,7 +32,7 @@ pr-str
   )
 
 (def gen-char-no-newlines (gen/such-that #(not= % \newline) gen/char-ascii))
-(def gen-str-no-newlines  (gen/fmap str/join (gen/vector gen-char-no-newlines)))w
+(def gen-str-no-newlines  (gen/fmap str/join (gen/vector gen-char-no-newlines)))
 
 
 (defn lines [s]
