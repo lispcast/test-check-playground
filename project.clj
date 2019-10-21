@@ -6,4 +6,5 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [cheshire "5.9.0"]
                  [clj-http "3.10.0"]]
-  :profiles {:dev {:dependencies [[org.clojure/test.check "0.10.0"]]}})
+  :profiles {:dev {:dependencies [[org.clojure/test.check "0.10.0"]
+                                  [etaoin "0.3.5"]]}})
