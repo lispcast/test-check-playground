@@ -6,7 +6,7 @@
   (not (pos? (reduce
               (fn [r [a b]]
                 (if (pos? r)
-                  (reduce r)
+                  r
                   (compare a b)))
               -1
               (partition 2 1 s)))))
